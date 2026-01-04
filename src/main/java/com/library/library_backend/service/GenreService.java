@@ -1,10 +1,7 @@
-package com.library.library_backend;
+package com.library.library_backend.service;
 
 import com.library.library_backend.exception.GenreException;
-import com.library.library_backend.model.Genre;
 import com.library.library_backend.payload.dto.GenreDTO;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package com.library.library_backend.service.impl;
 
-import com.library.library_backend.GenreService;
+import com.library.library_backend.service.GenreService;
 import com.library.library_backend.exception.GenreException;
 import com.library.library_backend.mapper.GenreMapper;
 import com.library.library_backend.model.Genre;

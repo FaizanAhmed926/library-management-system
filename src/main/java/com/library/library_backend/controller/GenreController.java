@@ -1,6 +1,6 @@
 package com.library.library_backend.controller;
 
-import com.library.library_backend.GenreService;
+import com.library.library_backend.service.GenreService;
 import com.library.library_backend.exception.GenreException;
 import com.library.library_backend.model.Genre;
 import com.library.library_backend.payload.dto.GenreDTO;
