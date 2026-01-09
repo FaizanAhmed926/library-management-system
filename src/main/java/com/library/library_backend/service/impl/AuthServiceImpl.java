@@ -3,19 +3,28 @@ package com.library.library_backend.service.impl;
 import com.library.library_backend.configuration.JwtProvider;
 import com.library.library_backend.domain.UserRole;
 import com.library.library_backend.exception.UserException;
+import com.library.library_backend.mapper.UserMapper;
+import com.library.library_backend.model.PasswordResetToken;
 import com.library.library_backend.model.User;
 import com.library.library_backend.payload.dto.UserDTO;
 import com.library.library_backend.payload.response.AuthResponse;
+import com.library.library_backend.repository.PasswordResetTokenRepository;
 import com.library.library_backend.repository.UserRepository;
 import com.library.library_backend.service.AuthService;
+import com.library.library_backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +33,40 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private  final PasswordEncoder passwordEncoder;
     private final JwtProvider  jwtProvider;
+    private  final CustomUserServiceImplementation customUserServiceImplementation;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
 
     @Override
-    public AuthResponse login(String username, String password) {
-        return null;
+    public AuthResponse login(String username, String password) throws UserException {
+        Authentication authentication=authenticate(username,password);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+//        Collection<? extends GrantedAuthority> authorities=authentication.getAuthorities();
+//        String role=authorities.iterator().next().getAuthority();
+        String token=jwtProvider.generateToken(authentication);
+        User user=userRepository.findByEmail(username);
+
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+        AuthResponse response=new AuthResponse();
+        response.setTitle("Login success");
+        response.setMessage("welcome Back"+ username);
+        response.setJwt(token);
+        response.setUser(UserMapper.toDTO(user));
+
+
+        return response;
+    }
+
+    private Authentication authenticate(String username, String password) throws UserException {
+        UserDetails userDetails=customUserServiceImplementation.loadUserByUsername(username);
+        if (userDetails==null){
+            throw new UserException("user not found with email -" +password);
+        }
+        if (!passwordEncoder.matches(password,userDetails.getPassword())){
+            throw new UserException("user not match");
+        }
+        return  new UsernamePasswordAuthenticationToken(username,null,userDetails.getAuthorities());
     }
 
     @Override
@@ -55,17 +94,40 @@ public class AuthServiceImpl implements AuthService {
         response.setJwt(jwt);
         response.setTitle("Welcome "+createdUser.getFullName());
         response.setMessage("register success");
-        response.setUser(user);
-        return null;
+        response.setUser(UserMapper.toDTO(savedUser));
+        return response;
     }
 
-    @Override
-    public void createPasswordResetToken(String email) {
+    @Transactional
+    public void createPasswordResetToken(String email) throws UserException {
+        String frontendUrl="http://localhost:5173";
+        User user=userRepository.findByEmail(email);
+        if (user==null){
+            throw  new UserException("User not found with given email");
+        }
+        String token= UUID.randomUUID().toString();
 
+        PasswordResetToken resetToken=PasswordResetToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(5))
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+        String resetLink=frontendUrl+token;
+        String subject="Password reset request";
+        String body="You request to reset your Password. Use this link (Valid 5 minutes)";
+        emailService.sendEmail(user.getEmail(),subject,body);
     }
 
-    @Override
-    public void resetPassword(String token, String newPassword) {
-
+    @Transactional
+    public void resetPassword(String token, String newPassword) throws Exception {
+        PasswordResetToken resetToken=passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(
+                        ()->new Exception("Token not valid")
+                );
+        User user=resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        passwordResetTokenRepository.delete(resetToken);
     }
 }
