@@ -20,7 +20,7 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
 
     @PostMapping("/subscribe")
-    public ResponseEntity<?> subscribe(@Valid @RequestBody SubscriptionDTO subscription) throws Exception {
+    public ResponseEntity<?> subscribe(@RequestBody SubscriptionDTO subscription) throws Exception {
         SubscriptionDTO dto=subscriptionService.subscribe(subscription);
         return ResponseEntity.ok(dto);
     }

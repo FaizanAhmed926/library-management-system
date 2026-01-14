@@ -33,7 +33,7 @@ public class SubscriptionImpl implements SubscriptionService {
         SubscriptionPlan plan=subscriptionPlanRepository.findById(subscriptionDTO.getPlanId()).orElseThrow(
                 ()->new  Exception("Plan not found")
         );
-        Subscription subscription=subscriptionMapper.toEntity(subscriptionDTO);
+        Subscription subscription=subscriptionMapper.toEntity(subscriptionDTO,plan,user);
         subscription.initializeFromPlan();
         subscription.setIsActive(false);
         Subscription savedSubscription=subscriptionRepository.save(subscription);
