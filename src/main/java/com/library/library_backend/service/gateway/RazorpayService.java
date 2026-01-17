@@ -1,21 +1,34 @@
 package com.library.library_backend.service.gateway;
 
+import com.library.library_backend.domain.PaymentType;
 import com.library.library_backend.model.Payment;
+import com.library.library_backend.model.SubscriptionPlan;
 import com.library.library_backend.model.User;
 import com.library.library_backend.payload.response.PaymentLinkResponse;
+import com.library.library_backend.repository.PaymentRepository;
+import com.library.library_backend.service.SubscriptionPlanService;
+import com.razorpay.PaymentLink;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class RazorpayService {
+
+    private final SubscriptionPlanService subscriptionPlanService;
+
     @Value("${razorpay.key.id:}")
     private String razorpayKeyId;
 
     @Value("${razorpay.key.secret:}")
     private String razorpayKeySecret;
+
+    @Value("${razorpay.callback.base-url:http://localhost:5173}")
+    private String callbackBaseurl;
 
     public PaymentLinkResponse createPaymentLink(User user, Payment payment){
         try {
@@ -41,9 +54,72 @@ public class RazorpayService {
             paymentLinkRequest.put("notify",notify);
 
             paymentLinkRequest.put("reminder_enable",true);
+
+            String successUrl=callbackBaseurl+"/payment-success/"+payment.getId();
+
+            paymentLinkRequest.put("callback_url",successUrl);
+            paymentLinkRequest.put("callback_method","get");
+
+            JSONObject notes=new JSONObject();
+            notes.put("user_id",user.getId());
+            notes.put("payment_id",payment.getId());
+
+            if (payment.getPaymentType()== PaymentType.MEMBERSHIP){
+                notes.put("subscription_id",payment.getSubscription().getId());
+                notes.put("plan",payment.getSubscription().getPlan().getPlanCode());
+                notes.put("type",PaymentType.MEMBERSHIP);
+            } else if (payment.getPaymentType()==PaymentType.FINE) {
+                notes.put("type",PaymentType.FINE);
+            }
+            paymentLinkRequest.put("notes",notes);
+            PaymentLink paymentLink=razorpayClient.paymentLink.create(paymentLinkRequest);
+            String paymentUrl=paymentLink.get("short_url");
+            String paymentLinkId=paymentLink.get("id");
+
+            PaymentLinkResponse response=new PaymentLinkResponse();
+            response.setPayment_link_id(paymentUrl);
+            response.setPayment_link_id(paymentLinkId);
+            return response;
         }catch (RazorpayException e){
          throw  new RuntimeException(e);
         }
-        return null;
+    }
+
+    public JSONObject fetchPaymentDetails(String paymentId) throws Exception{
+        try{
+            RazorpayClient razorpay=new RazorpayClient(razorpayKeyId,razorpayKeySecret);
+            com.razorpay.Payment payment=razorpay.payments.fetch(paymentId);
+            return  payment.toJson();
+        } catch (RazorpayException e) {
+            throw new Exception("Failed to fetch payment details "+e.getMessage(),e);
+        }
+    }
+
+    public boolean isValidPayment(String paymentId){
+        try{
+            JSONObject paymentDetails=fetchPaymentDetails(paymentId);
+            String status=paymentDetails.optString("status");
+            long amount=paymentDetails.optLong("amount");
+            long amountInRupees=amount/100;
+            JSONObject notes=paymentDetails.getJSONObject("notes");
+            String paymentType=notes.optString("type");
+            if (!"captured".equalsIgnoreCase(status)){
+                return  false;
+            }
+
+            if (paymentType.equals(PaymentType.MEMBERSHIP.toString())){
+                String planCode=notes.optString("plan");
+                SubscriptionPlan subscriptionPlan=subscriptionPlanService
+                        .getBySubscriptionPlanCode(planCode);
+                return amountInRupees==subscriptionPlan.getPrice();
+            }else if (paymentType.equals(PaymentType.FINE.toString())){
+                Long fineId=notes.getLong("fine_id");
+            }
+            return  false;
+        } catch (Exception e) {
+            return  false;
+        }
+
+
     }
 }

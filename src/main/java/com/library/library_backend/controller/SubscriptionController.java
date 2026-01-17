@@ -3,6 +3,7 @@ package com.library.library_backend.controller;
 import com.library.library_backend.exception.SubscriptionException;
 import com.library.library_backend.payload.dto.SubscriptionDTO;
 import com.library.library_backend.payload.response.ApiResponse;
+import com.library.library_backend.payload.response.PaymentInitiateResponse;
 import com.library.library_backend.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class SubscriptionController {
 
     @PostMapping("/subscribe")
     public ResponseEntity<?> subscribe(@RequestBody SubscriptionDTO subscription) throws Exception {
-        SubscriptionDTO dto=subscriptionService.subscribe(subscription);
+        PaymentInitiateResponse dto=subscriptionService.subscribe(subscription);
         return ResponseEntity.ok(dto);
     }
 

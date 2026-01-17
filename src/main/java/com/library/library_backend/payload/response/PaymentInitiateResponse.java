@@ -2,12 +2,14 @@ package com.library.library_backend.payload.response;
 
 import com.library.library_backend.domain.PaymentGateway;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class PaymentInitiateResponse {
 
     private Long paymentId;

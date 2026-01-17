@@ -5,9 +5,14 @@ import com.library.library_backend.domain.PaymentStatus;
 import com.library.library_backend.domain.PaymentType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class PaymentDTO {
     private Long id;
 
