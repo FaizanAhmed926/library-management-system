@@ -34,7 +34,7 @@ public class RazorpayService {
         try {
 
             RazorpayClient razorpayClient=new RazorpayClient(razorpayKeyId,razorpayKeySecret);
-            Long amountInPaisa=payment.getAmount()*(new java.math.BigDecimal("100")).intValue();
+            Long amountInPaisa=payment.getAmount()*100;
             JSONObject paymentLinkRequest=new JSONObject();
             paymentLinkRequest.put("amount",amountInPaisa);
             paymentLinkRequest.put("currency","INR");
@@ -77,7 +77,7 @@ public class RazorpayService {
             String paymentLinkId=paymentLink.get("id");
 
             PaymentLinkResponse response=new PaymentLinkResponse();
-            response.setPayment_link_id(paymentUrl);
+            response.setPayment_link_url(paymentUrl);
             response.setPayment_link_id(paymentLinkId);
             return response;
         }catch (RazorpayException e){
