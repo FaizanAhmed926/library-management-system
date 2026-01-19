@@ -6,10 +6,9 @@ import com.library.library_backend.model.Book;
 import com.library.library_backend.payload.dto.BookDTO;
 import com.library.library_backend.payload.request.BookSearchRequest;
 import com.library.library_backend.payload.response.PageResponse;
-import com.library.library_backend.repository.Bookrepository;
+import com.library.library_backend.repository.BookRepository;
 import com.library.library_backend.service.BookService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
-    private  final Bookrepository bookrepository;
+    private  final BookRepository bookrepository;
     private final BookMapper bookMapper;
     @Override
     public BookDTO createBook(BookDTO bookDTO) throws BookException {

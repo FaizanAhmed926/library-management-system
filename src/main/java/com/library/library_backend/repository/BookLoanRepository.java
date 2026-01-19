@@ -1,0 +1,35 @@
+package com.library.library_backend.repository;
+
+import com.library.library_backend.domain.BookLoanStatus;
+import com.library.library_backend.model.BookLoan;
+import com.library.library_backend.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+
+public interface BookLoanRepository extends JpaRepository<BookLoan,Long> {
+    Page<BookLoan> findByUserId(Long userId, Pageable pageable);
+    Page<BookLoan> findByStatusAndUser(BookLoanStatus status, User user, Pageable pageable);
+    Page<BookLoan> findByStatus(BookLoanStatus status,Pageable pageable);
+
+    @Query("select case when count(bl) > 0 then true else false end from BookLoan bl "+
+    " where bl.user.id =: userId and bl.book.id =: bookId "+
+    " and (bl.status = 'CHECKED_OUT' OR bl.status= 'OVERDUE')")
+    boolean hasActiveCheckout(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    @Query("SELECT COUNT(bl) FROM BookLoan bl WHERE bl.user.id= :userId "+
+    "AND (bl.status = 'CHECKED_OUT' OR bl.status = 'OVERDUE')")
+    long countActiveBookLoansByUser(@Param("userId") Long userId);
+
+    @Query("SELECT COUNT(bl) FROM BookLoan bl WHERE bl.user.id= :userId "+
+            "AND OR bl.status = 'OVERDUE' ")
+    long countOverdueBookLoansByUser(@Param("userId") Long userId);
+
+    @Query("SELECT bl FROM BookLoan bl WHERE bl.dueDate < :currentDate "+
+            "AND (bl.status = 'CHECKED_OUT' OR bl.status = 'OVERDUE')")
+    Page<BookLoan> findOverdueBookLoans(@Param("currentDate")LocalDate currentDate,Pageable pageable);
+}
