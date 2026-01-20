@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 @Data
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class Checkoutrequest {
+public class CheckoutRequest {
     @NotNull(message = "Book ID is mandatory")
     private Long bookId;
 
@@ -18,3 +18,4 @@ public class Checkoutrequest {
 
     private String notes;
 }
+

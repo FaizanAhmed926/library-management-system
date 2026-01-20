@@ -10,8 +10,8 @@ import com.library.library_backend.model.User;
 import com.library.library_backend.payload.dto.BookLoanDTO;
 import com.library.library_backend.payload.dto.SubscriptionDTO;
 import com.library.library_backend.payload.request.BookLoanSearchRequest;
-import com.library.library_backend.payload.request.Checkinrequest;
-import com.library.library_backend.payload.request.Checkoutrequest;
+import com.library.library_backend.payload.request.CheckinRequest;
+import com.library.library_backend.payload.request.CheckoutRequest;
 import com.library.library_backend.payload.request.RenewalRequest;
 import com.library.library_backend.payload.response.PageResponse;
 import com.library.library_backend.repository.BookLoanRepository;
@@ -27,6 +27,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,13 +42,13 @@ public class BookLoanServiceImpl implements BookLoanService {
     private final BookLoanMapper bookLoanMapper;
 
     @Override
-    public BookLoanDTO checkoutBook(Checkoutrequest checkoutrequest) throws Exception {
+    public BookLoanDTO checkoutBook(CheckoutRequest checkoutrequest) throws Exception {
         User user=userService.getCurrentUser();
         return checkoutBookForUser(user.getId(),checkoutrequest);
     }
 
     @Override
-    public BookLoanDTO checkoutBookForUser(Long userId, Checkoutrequest checkoutrequest) throws Exception {
+    public BookLoanDTO checkoutBookForUser(Long userId, CheckoutRequest checkoutrequest) throws Exception {
         User user=userService.findById(userId);
         SubscriptionDTO subscription=subscriptionService.getUsersActiveSubscription(user.getId());
         Book book=bookRepository.findById(checkoutrequest.getBookId()).orElseThrow(()->new BookException("Book not found with id "+checkoutrequest.getBookId()));
@@ -94,7 +95,7 @@ public class BookLoanServiceImpl implements BookLoanService {
     }
 
     @Override
-    public BookLoanDTO checkinBook(Checkinrequest checkinrequest) throws Exception {
+    public BookLoanDTO checkinBook(CheckinRequest checkinrequest) throws Exception {
         BookLoan bookLoan=bookLoanRepository.findById(checkinrequest.getBookLoanId())
                 .orElseThrow(()->new Exception("Book Loan  not found"));
 
@@ -166,17 +167,35 @@ public class BookLoanServiceImpl implements BookLoanService {
         } else if (searchRequest.getUserId()!=null) {
             bookLoanPage=bookLoanRepository.findByUserId(searchRequest.getUserId(),pageable);
         } else if (searchRequest.getBookId()!=null) {
-            bookLoanPage=bookLoanRepository.findByBookId(searchRequest.getUserId(),pageable);
+            bookLoanPage=bookLoanRepository.findByBookId(searchRequest.getBookId(),pageable);
         } else if (searchRequest.getStatus()!=null) {
             bookLoanPage=bookLoanRepository.findByStatus(searchRequest.getStatus(),pageable);
         } else if (searchRequest.getStartDate()!=null && searchRequest.getEndDate()!=null) {
-            bookLoanPage=bookLoanRepository.findBookLoansByDateRange();
+            bookLoanPage=bookLoanRepository.findBookLoansByDateRange(
+                    searchRequest.getStartDate(),
+                    searchRequest.getEndDate(),
+                    pageable
+            );
+        } else {
+            bookLoanPage =bookLoanRepository.findAll(pageable);
         }
-        return null;
+        return convertToPageResponse(bookLoanPage);
     }
 
     @Override
     public int updateOverdueBookLoan() {
+        Pageable pageable=PageRequest.of(0,1000);
+        Page<BookLoan> overduePage=bookLoanRepository.findOverdueBookLoans(LocalDate.now(),pageable);
+        int updateCount=0;
+        for (BookLoan bookLoan:overduePage.getContent()){
+            if (bookLoan.getStatus()==BookLoanStatus.CHECKED_OUT){
+                bookLoan.setStatus(BookLoanStatus.OVERDUE);
+                bookLoan.setIsOverdue(true);
+                int overdueDays=calculateOverdueDate(bookLoan.getDueDate(),LocalDate.now());
+                bookLoanRepository.save(bookLoan);
+                updateCount++;
+            }
+        }
         return 0;
     }
 
@@ -199,5 +218,12 @@ public class BookLoanServiceImpl implements BookLoanService {
                 bookLoanPage.isFirst(),
                 bookLoanPage.isEmpty()
         );
+    }
+
+    public  int calculateOverdueDate(LocalDate dueDate,LocalDate today){
+        if (today.isBefore(dueDate) || today.isEqual(dueDate)){
+            return 0;
+        }
+        return (int) ChronoUnit.DAYS.between(dueDate,today);
     }
 }

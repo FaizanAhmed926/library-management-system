@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Checkinrequest {
+public class CheckinRequest {
     @NotNull(message = "Book loan ID is mandatory")
     private Long bookLoanId;
 
