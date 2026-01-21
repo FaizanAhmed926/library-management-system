@@ -34,7 +34,7 @@ public class BookLoanController {
     }
 
     @PostMapping("/checkin")
-    public ResponseEntity<?> checkin(CheckinRequest checkinRequest) throws Exception {
+    public ResponseEntity<?> checkin(@Valid @RequestBody  CheckinRequest checkinRequest) throws Exception {
         BookLoanDTO bookLoan=bookLoanService.checkinBook(checkinRequest);
         return  new ResponseEntity<>(bookLoan,HttpStatus.OK);
     }
