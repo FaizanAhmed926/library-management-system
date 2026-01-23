@@ -39,4 +39,11 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
     Page<BookLoan> findBookLoansByDateRange(@Param("startDate") LocalDate startDate,
                                             @Param("endDate") LocalDate endDate,
                                             Pageable pageable);
-}
+
+    @Query("SELECT CASE WHEN COUNT(bl) > 0 THEN true ELSE false END FROM BookLoan bl " +
+            "WHERE bl.user.id = :userId AND bl.book.id = :bookId AND bl.status = :status")
+    boolean existsByUserIdAndBookIdAndStatus(
+            @Param("userId") Long userId,
+            @Param("bookId") Long bookId,
+            @Param("status") BookLoanStatus status
+    );}
