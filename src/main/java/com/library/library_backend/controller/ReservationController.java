@@ -21,7 +21,6 @@ public class ReservationController {
     @PostMapping
     public ResponseEntity<?> createReservation(@Valid @RequestBody ReservationRequest reservationRequest) throws Exception {
         ReservationDTO reservationDTO=reservationService.createReservation(reservationRequest);
-        System.out.println(reservationDTO.getBookTitle()+" vvvvvvvvv");
         return ResponseEntity.ok(reservationDTO);
     }
 

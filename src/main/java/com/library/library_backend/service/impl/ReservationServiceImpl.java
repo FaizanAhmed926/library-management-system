@@ -81,7 +81,6 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setQueuePosition((int) pendingCount+1);
 
         Reservation savedReservation=reservationRepository.save(reservation);
-        System.out.println(savedReservation.getBook().getTitle()+ "nnnnnnnn");
         return reservationMapper.toDTO(savedReservation);
     }
 
